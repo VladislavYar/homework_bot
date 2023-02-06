@@ -32,3 +32,9 @@ class StatusHomeworkError(Exception):
     """Исключение при неожиданном статусе домашней работы."""
 
     pass
+
+
+class ResponseJsonError(Exception):
+    """Исключение при не соответсвии даннных формату JSON."""
+
+    pass

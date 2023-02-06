@@ -12,16 +12,8 @@ from dotenv import load_dotenv
 
 from exceptions import (
     EnvironmentParameterError, RequestStatusCodeError, RequestError,
-    ResponseKeyError, HomeworkKeyError, StatusHomeworkError
+    ResponseKeyError, HomeworkKeyError, StatusHomeworkError, ResponseJsonError
 )
-
-handler = StreamHandler(stream=sys.stdout)
-formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
-handler.setFormatter(formatter)
-
-logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.DEBUG)
-logger.addHandler(handler)
 
 load_dotenv()
 
@@ -41,29 +33,40 @@ HOMEWORK_VERDICTS = {
 }
 
 
-def check_tokens():
+def init_logger() -> logging.Logger:
+    """Создаёт и настраивает логер."""
+    handler = StreamHandler(stream=sys.stdout)
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(level=logging.DEBUG)
+    logger.addHandler(handler)
+    return logger
+
+
+def check_tokens() -> None:
     """Проверяет наличие переменных окружения."""
     environment_variables = {
         'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
         'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
         'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID
     }
-    if None in environment_variables.values():
-        none_variable = (
-            list(environment_variables.keys())
-            [list(environment_variables.values()).index(None)]
-        )
-        logger.critical("Отсутствует обязательная переменная окружения: "
-                        f"'{none_variable}'. "
-                        "Программа принудительно остановлена.")
 
-        raise EnvironmentParameterError("Отсутствует обязательная "
-                                        "переменная окружения: "
-                                        f"'{none_variable}'. "
-                                        "Программа принудительно остановлена.")
+    for key, value in environment_variables.items():
+        if not value:
+            logger.critical(
+                "Отсутствует обязательная переменная окружения: "
+                f"'{key}'. Программа принудительно остановлена."
+            )
+
+            raise EnvironmentParameterError(
+                f"Отсутствует обязательная переменная окружения: '{key}'. "
+                "Программа принудительно остановлена."
+            )
 
 
-def send_message(bot, message):
+def send_message(bot: telegram.bot.Bot, message: str) -> None:
     """Отправляет сообщение в Telegram чат."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
@@ -72,58 +75,63 @@ def send_message(bot, message):
         logger.error(f'При отправке сообщения выдало ошибку "{error}"')
 
 
-def get_api_answer(timestamp):
+def get_api_answer(timestamp: int) -> dict[str, list, int]:
     """Делает запрос к эндпоинту и проверяет его корректность."""
     payload = {'from_date': timestamp}
 
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
-
     except requests.RequestException as error:
-
         logger.error('Сбой в работе программы: '
                      'При запросе к API '
                      f'произошла ошибка {error}.')
         raise RequestError('При запросе к API '
                            f'произошла ошибка {error}.')
 
-    status_code = response.status_code
-
-    if status_code != 200:
+    if response.status_code != 200:
         logger.error(
-            "Сбой в работе программы: "
-            "Эндпоинт https://practicum.yandex.ru/api/"
-            "user_api/homework_statuses/ недоступен. "
-            f"Код ответа API: {status_code}"
+            f'Сбой в работе программы: Эндпоинт {ENDPOINT}. '
+            f'Код ответа API: {response.status_code}'
         )
         raise RequestStatusCodeError(
-            "Эндпоинт https://practicum.yandex.ru/api/"
-            "user_api/homework_statuses/ недоступен. "
-            f"Код ответа API: {status_code}"
+            f'Эндпоинт {ENDPOINT}. Код ответа API: {response.status_code}'
         )
-    return response.json()
+
+    try:
+        return response.json()
+    except Exception:
+        logger.error(
+            'Сбой в работе программы: Данные в response '
+            'не соответсвуют формату JSON.'
+        )
+        raise ResponseJsonError(
+            'Данные в response не соответсвуют формату JSON.'
+        )
 
 
-def check_response(response):
+def check_response(response: dict[str, list, int]) -> list[dict]:
     """Проверяет ответ API на соответствие документации."""
-    if type(response) != dict:
+    if not isinstance(response, dict):
         logger.error(
             "Сбой в работе программы: "
-            "Полученные данные "
+            "Получены данные "
             "'response' не в виде словаря."
         )
         raise TypeError("Полученные данные "
                         "'response' не в виде словаря.")
-    elif 'homeworks' not in response:
+
+    if 'homeworks' not in response:
         logger.error("Сбой в работе программы: "
                      "Отсутвует ожидаемый ключ 'homeworks'.")
         raise ResponseKeyError("Отсутвует ожидаемый ключ 'homeworks'.")
-    elif not response['homeworks']:
+
+    if not response['homeworks']:
         logger.debug('Новый статус домашней работы отсутсвует.')
-    elif type(response['homeworks']) != list:
+
+    if not isinstance(response['homeworks'], list):
         logger.error(
             "Сбой в работе программы: "
-            "Полученные данные под ключом "
+            "Получены данные под ключом "
             "'homeworks' не в виде списка."
         )
         raise TypeError("Полученные данные под ключом "
@@ -132,7 +140,7 @@ def check_response(response):
     return response['homeworks']
 
 
-def parse_status(homework):
+def parse_status(homework: dict[str, int, str]) -> str:
     """Извлекает информацию о конкретной домашней работе."""
     if 'homework_name' not in homework:
         logger.error(
@@ -140,13 +148,15 @@ def parse_status(homework):
             "Отсутвует ожидаемый ключ 'homework_name'."
         )
         raise HomeworkKeyError("Отсутвует ожидаемый ключ 'homework_name'.")
-    elif 'status' not in homework:
+
+    if 'status' not in homework:
         logger.error(
             "Сбой в работе программы: "
             "Отсутвует ожидаемый ключ 'status'."
         )
         raise HomeworkKeyError("Отсутвует ожидаемый ключ 'status'.")
-    elif homework['status'] not in HOMEWORK_VERDICTS:
+
+    if homework['status'] not in HOMEWORK_VERDICTS:
         logger.error(
             "Сбой в работе программы: Неожиданный статус домашней работы. "
             f"status: '{homework['status']}'."
@@ -159,21 +169,17 @@ def parse_status(homework):
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
-def main():
+def main() -> None:
     """Основная логика работы бота."""
     check_tokens()
-
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-
     timestamp = int(time.time())
-
     old_error_message = ''
 
     while True:
         try:
             response = get_api_answer(timestamp)
             homeworks = check_response(response)
-
             if homeworks:
                 message = parse_status(homeworks[0])
                 send_message(bot, message)
@@ -188,5 +194,6 @@ def main():
         time.sleep(RETRY_PERIOD)
 
 
+logger = init_logger()
 if __name__ == '__main__':
     main()
