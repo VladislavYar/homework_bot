@@ -6,7 +6,7 @@ import time
 
 import requests
 
-from telegram import Bot
+import telegram
 
 from dotenv import load_dotenv
 
@@ -75,47 +75,61 @@ def send_message(bot, message):
 def get_api_answer(timestamp):
     """Делает запрос к эндпоинту и проверяет его корректность."""
     payload = {'from_date': timestamp}
-    response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
-    status_code = response.status_code
+    try:
+        response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
+        status_code = response.status_code
 
-    if status_code == 400 or status_code == 401:
-        parameter_by_status_сode = {'400': 'from_date', '401': 'Authorization'}
-        logger.error(
-            "Сбой в работе программы: "
-            "Некорректное значение параметра "
-            f"{parameter_by_status_сode[str(status_code)]}. "
-            f"Код ответа API: {status_code}"
-        )
-        raise RequestParameterError(
-            "Некорректное значение параметра "
-            f"{parameter_by_status_сode[str(status_code)]}. "
-            f"Код ответа API: {status_code}"
-        )
-    elif status_code == 404:
-        logger.error(
-            "Сбой в работе программы: "
-            "Эндпоинт https://practicum.yandex.ru/api/"
-            "user_api/homework_statuses/ недоступен. "
-            "Код ответа API: 404"
-        )
-        raise RequestParameterError(
-            "Эндпоинт https://practicum.yandex.ru/api/"
-            "user_api/homework_statuses/ недоступен. "
-            "Код ответа API: 404"
-        )
-    return response.json()
+        if status_code == 400 or status_code == 401:
+            parameter_by_status_сode = {'400': 'from_date',
+                                        '401': 'Authorization'}
+            logger.error(
+                "Сбой в работе программы: "
+                "Некорректное значение параметра "
+                f"{parameter_by_status_сode[str(status_code)]}. "
+                f"Код ответа API: {status_code}"
+            )
+            raise RequestParameterError(
+                "Некорректное значение параметра "
+                f"{parameter_by_status_сode[str(status_code)]}. "
+                f"Код ответа API: {status_code}"
+            )
+        elif status_code == 404:
+            logger.error(
+                "Сбой в работе программы: "
+                "Эндпоинт https://practicum.yandex.ru/api/"
+                "user_api/homework_statuses/ недоступен. "
+                "Код ответа API: 404"
+            )
+            raise RequestParameterError(
+                "Эндпоинт https://practicum.yandex.ru/api/"
+                "user_api/homework_statuses/ недоступен. "
+                "Код ответа API: 404"
+            )
+        return response.json()
+    except requests.RequestException as error:
+        logger.error('Сбой в работе программы: '
+                     'При запросе к API '
+                     f'произошла ошибка "{error}".')
+        raise requests.RequestException('При запросе к API '
+                                        f'произошла ошибка "{error}".')
 
 
 def check_response(response):
     """Проверяет ответ API на соответствие документации."""
-    if not response['homeworks']:
+    if 'homeworks' not in response:
+        logger.error("Сбой в работе программы: "
+                     "Отсутвует ожидаемый ключ 'homeworks'.")
+        raise ResponseKeyError("Отсутвует ожидаемый ключ 'homeworks'.")
+    elif not response['homeworks']:
         logger.debug('Новый статус домашней работы отсутсвует.')
-    elif 'homeworks' not in response:
+    elif type(response['homeworks']) != list:
         logger.error(
             "Сбой в работе программы: "
-            "Отсутвует ожидаемый ключ 'homeworks'."
+            "Получаемые данные под ключом "
+            "'homeworks' не в виде списка."
         )
-        raise ResponseKeyError("Отсутвует ожидаемый ключ 'homeworks'.")
+        raise TypeError("Получаемые данные под ключом "
+                        "'homeworks' не в виде списка.")
 
     return response['homeworks']
 
@@ -151,7 +165,7 @@ def main():
     """Основная логика работы бота."""
     check_tokens()
 
-    bot = Bot(token=TELEGRAM_TOKEN)
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
 
     timestamp = int(time.time())
 
