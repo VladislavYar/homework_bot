@@ -75,29 +75,22 @@ def send_message(bot, message):
 def get_api_answer(timestamp):
     """Делает запрос к эндпоинту и проверяет его корректность."""
     payload = {'from_date': timestamp}
-    try:
-        response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
-        status_code = response.status_code
+    response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
+    status_code = response.status_code
 
-        if status_code != 200:
-            logger.error(
-                "Сбой в работе программы: "
-                "Эндпоинт https://practicum.yandex.ru/api/"
-                "user_api/homework_statuses/ недоступен. "
-                f"Код ответа API: {status_code}"
-            )
-            raise RequestError(
-                "Эндпоинт https://practicum.yandex.ru/api/"
-                "user_api/homework_statuses/ недоступен. "
-                f"Код ответа API: {status_code}"
-            )
-        return response.json()
-    except requests.RequestException as error:
-        logger.error('Сбой в работе программы: '
-                     'При запросе к API '
-                     f'произошла ошибка "{error}".')
-        raise requests.RequestException('При запросе к API '
-                                        f'произошла ошибка "{error}".')
+    if status_code != 200:
+        logger.error(
+            "Сбой в работе программы: "
+            "Эндпоинт https://practicum.yandex.ru/api/"
+            "user_api/homework_statuses/ недоступен. "
+            f"Код ответа API: {status_code}"
+        )
+        raise RequestError(
+            "Эндпоинт https://practicum.yandex.ru/api/"
+            "user_api/homework_statuses/ недоступен. "
+            f"Код ответа API: {status_code}"
+        )
+    return response.json()
 
 
 def check_response(response):
@@ -105,10 +98,10 @@ def check_response(response):
     if type(response) != dict:
         logger.error(
             "Сбой в работе программы: "
-            "Получаемые данные "
+            "Полученные данные "
             "'response' не в виде словаря."
         )
-        raise TypeError("Получаемые данные "
+        raise TypeError("Полученные данные "
                         "'response' не в виде словаря.")
     elif 'homeworks' not in response:
         logger.error("Сбой в работе программы: "
@@ -119,10 +112,10 @@ def check_response(response):
     elif type(response['homeworks']) != list:
         logger.error(
             "Сбой в работе программы: "
-            "Получаемые данные под ключом "
+            "Полученные данные под ключом "
             "'homeworks' не в виде списка."
         )
-        raise TypeError("Получаемые данные под ключом "
+        raise TypeError("Полученные данные под ключом "
                         "'homeworks' не в виде списка.")
 
     return response['homeworks']
