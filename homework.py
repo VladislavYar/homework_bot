@@ -54,10 +54,13 @@ def check_tokens():
             [list(environment_variables.values()).index(None)]
         )
         logger.critical("Отсутствует обязательная переменная окружения: "
-                        f"'{none_variable}'. Программа принудительно остановлена.")
+                        f"'{none_variable}'. "
+                        "Программа принудительно остановлена.")
 
-        raise EnvironmentParameterError("Отсутствует обязательная переменная окружения: "
-                                        f"'{none_variable}'. Программа принудительно остановлена.")
+        raise EnvironmentParameterError("Отсутствует обязательная "
+                                        "переменная окружения: "
+                                        f"'{none_variable}'. "
+                                        "Программа принудительно остановлена.")
 
 
 def send_message(bot, message):
