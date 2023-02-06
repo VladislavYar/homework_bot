@@ -102,7 +102,15 @@ def get_api_answer(timestamp):
 
 def check_response(response):
     """Проверяет ответ API на соответствие документации."""
-    if 'homeworks' not in response:
+    if type(response) != dict:
+        logger.error(
+            "Сбой в работе программы: "
+            "Получаемые данные "
+            "'response' не в виде словаря."
+        )
+        raise TypeError("Получаемые данные "
+                        "'response' не в виде словаря.")
+    elif 'homeworks' not in response:
         logger.error("Сбой в работе программы: "
                      "Отсутвует ожидаемый ключ 'homeworks'.")
         raise ResponseKeyError("Отсутвует ожидаемый ключ 'homeworks'.")
