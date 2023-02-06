@@ -75,7 +75,7 @@ def send_message(bot: telegram.bot.Bot, message: str) -> None:
         logger.error(f'При отправке сообщения выдало ошибку "{error}"')
 
 
-def get_api_answer(timestamp: int) -> dict[str, list, int]:
+def get_api_answer(timestamp: int) -> dict:
     """Делает запрос к эндпоинту и проверяет его корректность."""
     payload = {'from_date': timestamp}
 
@@ -109,7 +109,7 @@ def get_api_answer(timestamp: int) -> dict[str, list, int]:
         )
 
 
-def check_response(response: dict[str, list, int]) -> list[dict]:
+def check_response(response: dict) -> list:
     """Проверяет ответ API на соответствие документации."""
     if not isinstance(response, dict):
         logger.error(
@@ -140,7 +140,7 @@ def check_response(response: dict[str, list, int]) -> list[dict]:
     return response['homeworks']
 
 
-def parse_status(homework: dict[str, int, str]) -> str:
+def parse_status(homework: dict) -> str:
     """Извлекает информацию о конкретной домашней работе."""
     if 'homework_name' not in homework:
         logger.error(
