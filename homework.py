@@ -75,22 +75,29 @@ def send_message(bot, message):
 def get_api_answer(timestamp):
     """Делает запрос к эндпоинту и проверяет его корректность."""
     payload = {'from_date': timestamp}
-    response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
-    status_code = response.status_code
+    try:
+        response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
+        status_code = response.status_code
 
-    if status_code != 200:
-        logger.error(
-            "Сбой в работе программы: "
-            "Эндпоинт https://practicum.yandex.ru/api/"
-            "user_api/homework_statuses/ недоступен. "
-            f"Код ответа API: {status_code}"
-        )
-        raise RequestError(
-            "Эндпоинт https://practicum.yandex.ru/api/"
-            "user_api/homework_statuses/ недоступен. "
-            f"Код ответа API: {status_code}"
-        )
-    return response.json()
+        if status_code != 200:
+            logger.error(
+                "Сбой в работе программы: "
+                "Эндпоинт https://practicum.yandex.ru/api/"
+                "user_api/homework_statuses/ недоступен. "
+                f"Код ответа API: {status_code}"
+            )
+            raise RequestError(
+                "Эндпоинт https://practicum.yandex.ru/api/"
+                "user_api/homework_statuses/ недоступен. "
+                f"Код ответа API: {status_code}"
+            )
+        return response.json()
+    except requests.RequestException:
+        logger.error('Сбой в работе программы: '
+                     'При запросе к API '
+                     'произошла ошибка.')
+        raise requests.RequestException('При запросе к API '
+                                        'произошла ошибка.')
 
 
 def check_response(response):
