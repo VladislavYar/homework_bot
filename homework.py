@@ -11,7 +11,7 @@ import telegram
 from dotenv import load_dotenv
 
 from exceptions import (
-    EnvironmentParameterError, RequestParameterError,
+    EnvironmentParameterError, RequestError,
     ResponseKeyError, HomeworkKeyError, StatusHomeworkError
 )
 
@@ -79,31 +79,17 @@ def get_api_answer(timestamp):
         response = requests.get(ENDPOINT, headers=HEADERS, params=payload)
         status_code = response.status_code
 
-        if status_code == 400 or status_code == 401:
-            parameter_by_status_сode = {'400': 'from_date',
-                                        '401': 'Authorization'}
-            logger.error(
-                "Сбой в работе программы: "
-                "Некорректное значение параметра "
-                f"{parameter_by_status_сode[str(status_code)]}. "
-                f"Код ответа API: {status_code}"
-            )
-            raise RequestParameterError(
-                "Некорректное значение параметра "
-                f"{parameter_by_status_сode[str(status_code)]}. "
-                f"Код ответа API: {status_code}"
-            )
-        elif status_code == 404:
+        if status_code != 200:
             logger.error(
                 "Сбой в работе программы: "
                 "Эндпоинт https://practicum.yandex.ru/api/"
                 "user_api/homework_statuses/ недоступен. "
-                "Код ответа API: 404"
+                f"Код ответа API: {status_code}"
             )
-            raise RequestParameterError(
+            raise RequestError(
                 "Эндпоинт https://practicum.yandex.ru/api/"
                 "user_api/homework_statuses/ недоступен. "
-                "Код ответа API: 404"
+                f"Код ответа API: {status_code}"
             )
         return response.json()
     except requests.RequestException as error:

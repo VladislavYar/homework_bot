@@ -4,8 +4,8 @@ class EnvironmentParameterError(Exception):
     pass
 
 
-class RequestParameterError(Exception):
-    """Исключение при некорректнных параметрах запроса."""
+class RequestError(Exception):
+    """Исключение при некорректнном запросе."""
 
     pass
 
