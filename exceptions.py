@@ -4,8 +4,14 @@ class EnvironmentParameterError(Exception):
     pass
 
 
+class RequestStatusCodeError(Exception):
+    """Исключение при статус коде отличном от 200."""
+
+    pass
+
+
 class RequestError(Exception):
-    """Исключение при некорректнном запросе."""
+    """Обработка исключения 'requests.RequestException'."""
 
     pass
 
