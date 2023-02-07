@@ -45,6 +45,9 @@ def init_logger() -> logging.Logger:
     return logger
 
 
+logger = init_logger()
+
+
 def check_tokens() -> None:
     """Проверяет наличие переменных окружения."""
     environment_variables = {
@@ -194,6 +197,5 @@ def main() -> None:
         time.sleep(RETRY_PERIOD)
 
 
-logger = init_logger()
 if __name__ == '__main__':
     main()
